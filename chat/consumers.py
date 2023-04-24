@@ -27,16 +27,16 @@ class ChatConsumer(WebsocketConsumer):
 		self.accept()
 
 		# Fetch the data
-		latest_messages = list(Message.objects.all().order_by(
+		latest_messages = list(Message.objects.select_related('user').order_by(
 			'-timestamp'
 		).filter(
 			room=self.room 
 		).values_list( 
-			'user','message','timestamp' 
+			'user__username','message','timestamp' 
 		))
 		latest_messages.reverse()
 		initial_msgs = []
-		for msg in latest_messages:
+		for msg in latest_messages[:10]:
 			initial_msgs.append(
 				{ 
 					'user':msg[0] ,
@@ -52,6 +52,8 @@ class ChatConsumer(WebsocketConsumer):
 
 
 	def disconnect(self, close_code):
+		self.user.busy = False
+		self.user.save()
 		self.room.online.remove(self.user.id )
 		
 
@@ -62,19 +64,19 @@ class ChatConsumer(WebsocketConsumer):
 		# save msg 
 		message_obj = Message(room=self.room , user=User(self.user.id ), message=message) 
 		message_obj.save()
-		
+		'''
 		# add msg to requests, if receiver is not connected 
 		active_users = list(self.room.online.all().values_list('id' , flat=True ))
 		if( self.receiver not in active_users ):
 			req,created = Requests.objects.get_or_create( sender=User(self.user.id ) ) #remove this while accessing 
 			print(f'Request object created:{created} {req}')
-			
+		'''	
 		# send chat message event to the room
 		async_to_sync(self.channel_layer.group_send)(
 			self.room_name,
 			{
 				'type': 'chat_message',
-				'user': self.user.id  ,
+				'user': self.user.username  ,
 				'message': message,
 			}
 		)

@@ -8,19 +8,23 @@ from django.shortcuts import render
 
 
 def register(request):
-    if request.method == "GET":
-        return render(
-            request, "users/register.html",
-            {"form": CustomUserCreationForm}
-        )
-    elif request.method == "POST":
-        form = CustomUserCreationForm(request.POST)
-        if form.is_valid():
-            user = form.save()
-            login(request, user)
-            return redirect(reverse("chat:dashboard"))
-        else:
-            return render(
-                request, "users/register.html",
-                {"form": CustomUserCreationForm}
-            )
+	if request.method == "GET":
+		return render(
+			request, "users/register.html",
+			{"form": CustomUserCreationForm}
+		)
+	elif request.method == "POST":
+		form = CustomUserCreationForm(request.POST)
+		#form.add_error('username', 'This is a test error message.')
+		if form.is_valid():
+			interests = form.cleaned_data.get('interests')
+			user = form.save()
+			user.interests.set(interests)
+			user.save()
+			login(request, user)
+			return redirect(reverse("chat:chat-room"))
+		else:
+			return render(
+				request, "users/register.html",
+				{"form": form}
+			)

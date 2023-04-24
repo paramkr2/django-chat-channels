@@ -40,9 +40,71 @@ chatMessageSend.onclick = function() {
     chatMessageInput.value = "";
 };
 
+function changeStatus(){
+	document.getElementById("status_form").submit()
+	if( chatSocket != null ){
+		console.log('Closing Connections')
+		chatSocket.close();
+	}
+}
+
+// initial connect 
+
+function getroom() {
+    fetch('get_room/', {
+        method: 'POST',
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({}),
+        cache: 'default'
+    })
+    .then(response => {
+        // handle response
+        console.log('response:', response);
+        return response.json();  // convert response to JSON
+    })
+    .then(data => {
+        // handle data
+        console.log('data:', data);
+        if( data['valid'] == true  ){
+		    // call connect(_
+			console.log('connected called')
+			// show information 
+			const username = data.details.userinfo.username;
+			const gender = data.details.userinfo.gender;
+			const country = data.details.userinfo.country;
+			const userinfoText = `Connected <br> Username: ${username} | Gender: ${gender} | Country: ${country}`;
+			document.getElementById('userinfo').innerHTML  = userinfoText;
+			
+			connect(data['details']['room_name'])
+        }
+    })
+    .catch(error => {
+        console.log('error happened:', error);
+    });
+};
+
+if( 'true' == document.getElementById('statuss').text ){
+	getroom();
+}
+
+
+window.addEventListener('unload', function(event) {
+    // Set the user status to offline
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', 'set_user_offline/', true);
+    xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+    xhr.send();
+
+    // Note: The XHR request is asynchronous and may not complete before the page is unloaded.
+});
+
+
+
 let chatSocket = null;
-const room = JSON.parse(document.getElementById('roomName').textContent);
-function connect() {
+function connect(room) {
 	console.log("Room",room);
     chatSocket = new WebSocket("ws://" + window.location.host + "/ws/chat/" + room + "/");
 
@@ -67,29 +129,11 @@ function connect() {
         switch (data.type) {
 			case "initial_msgs":
 				for ( let i = 0 ; i < data.msgs.length ; i++){
-					chatLog.value += data.msgs[i].user + ": " + data.msgs[i].msg + "\n";	
+					chatLog.value += data.msgs[i].user + ":" + data.msgs[i].msg + "\n";	
 				}
+				break;
             case "chat_message":
                 chatLog.value += data.user + ": " + data.message + "\n";
-                break;
-            case "user_list":
-                for (let i = 0; i < data.users.length; i++) {
-                    onlineUsersSelectorAdd(data.users[i]);
-                }
-                break;
-            case "user_join":
-                chatLog.value += data.user + " joined the room.\n";
-                onlineUsersSelectorAdd(data.user);
-                break;
-            case "user_leave":
-                chatLog.value += data.user + " left the room.\n";
-                onlineUsersSelectorRemove(data.user);
-                break;
-            case "private_message":
-                chatLog.value += "PM from " + data.user + ": " + data.message + "\n";
-                break;
-            case "private_message_delivered":
-                chatLog.value += "PM to " + data.target + ": " + data.message + "\n";
                 break;
             default:
                 console.error("Unknown message type!");
@@ -106,10 +150,5 @@ function connect() {
         chatSocket.close();
     }
 }
-connect();
 
-onlineUsersSelector.onchange = function() {
-    chatMessageInput.value = "/pm " + onlineUsersSelector.value + " ";
-    onlineUsersSelector.value = null;
-    chatMessageInput.focus();
-};
+

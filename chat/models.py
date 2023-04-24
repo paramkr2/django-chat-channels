@@ -33,3 +33,8 @@ class Requests(models.Model):
 	# this will lead us to connect to the room 
 	sender = models.ForeignKey(User, related_name='req_sender', on_delete=models.CASCADE)
 	
+class ChatRoom(models.Model):
+	user = models.ForeignKey(User,related_name='xx', on_delete=models.CASCADE)
+	receiver = models.ForeignKey(User,related_name='yy' ,on_delete=models.CASCADE)
+	
+	

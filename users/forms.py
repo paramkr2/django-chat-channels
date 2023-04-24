@@ -20,8 +20,9 @@ class CustomUserCreationForm(UserCreationForm):
 				field.widget.attrs['class'] += 'input'
 			else:
 				field.widget.attrs.update({'class':'input'})
-			
-			print(name)
+			if name == 'status':
+				field.required = False
 	class Meta(UserCreationForm.Meta):
 		model = User
 		fields = UserCreationForm.Meta.fields + ("email","full_name","phone","gender","country","interests")
+		
